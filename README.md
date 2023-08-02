@@ -22,9 +22,9 @@ python BlockMerge_Gradient.py --model_path1 path_to_first_model --model_path2 pa
 
 - `--output_model_path`: The path to save the merged model. This argument is **required**.
 
-- `--gradient_start`: The start gradient value. Specifies the starting blending ratio for the first model. Default value is `0.0`.
+- `--gradient_start`: The start gradient value. Specifies the starting blending ratio for the second model. Default value is `0.0`.
 
-- `--gradient_end`: The end gradient value. Specifies the ending blending ratio for the first model, with the second model being `(1 - gradient_end)`. Default value is `1.0`.
+- `--gradient_end`: The end gradient value. Specifies the ending blending ratio for the second model, with the first model being `(1 - gradient_end)`. Default value is `1.0`.
 
 - `--layer_start`: The start layer for merging. Allows you to specify from which layer the blending should begin. Default value is `0`.
 
@@ -37,7 +37,7 @@ python BlockMerge_Gradient.py --model_path1 path_to_first_model --model_path2 pa
 ![](MythoLogic-Mini-7b.png)
 
 ```bash
-python BlockMerge_Gradient.py --model_path1 "NousResearch/Nous-Hermes-Llama2-13b" --model_path2 "stabilityai/StableBeluga-7B" --output_model_path "mythologic-mini-7b" --gradient_start 0.9 --gradient_end 0.0 --layer_start 0 --layer_end 12
+python BlockMerge_Gradient.py --model_path1 "stabilityai/StableBeluga-7B" --model_path2 "NousResearch/Nous-Hermes-Llama2-13b" --output_model_path "mythologic-mini-7b" --gradient_start 0.9 --gradient_end 0.0 --layer_start 0 --layer_end 12
 ```
 
 In this example, layers from the first model (`model_path1`) will start blending from a ratio of `0.2` and end at `0.8` for the final layer, with the second model (`model_path2`) taking the complementary ratio.
