@@ -34,10 +34,10 @@ python BlockMerge_Gradient.py --model_path1 path_to_first_model --model_path2 pa
 
 ### Example
 
-
+![](MythoLogic-Mini-7b.png)
 
 ```bash
-python script_name.py --model_path1 ./model1/ --model_path2 ./model2/ --output_model_path ./merged_model/ --gradient_start 0.2 --gradient_end 0.8
+python BlockMerge_Gradient.py --model_path1 "NousResearch/Nous-Hermes-Llama2-13b" --model_path2 "stabilityai/StableBeluga-7B" --output_model_path "mythologic-mini-7b" --gradient_start 0.9 --gradient_end 0.0 --layer_start 0 --layer_end 12
 ```
 
 In this example, layers from the first model (`model_path1`) will start blending from a ratio of `0.2` and end at `0.8` for the final layer, with the second model (`model_path2`) taking the complementary ratio.
