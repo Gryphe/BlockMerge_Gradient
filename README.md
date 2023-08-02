@@ -2,7 +2,9 @@
 
 [Credit to TekVenom for the original concept!](https://github.com/TehVenomm/LM_Transformers_BlockMerge)
 
-This script provides a utility to merge two pre-trained language models by blending their layers. This can be useful for creating ensembles of models or combining the strengths of two different models into a singular model. The merger is done based on a specified gradient between the two models.
+This script allows you to merge two finetuned Llama 1/2 language models by blending their layers. This can be useful for creating ensembles of models or combining the strengths of two different models into a singular model. The merger is done based on a specified gradient between the two models.
+
+**Word of warning:** Do not attempt to merge Llama 1 with Llama 2 models. It will work, but it'll result in a garbled mess.
 
 Unless you have 128 GB RAM, this process will take up a lot of virtual memory. Spread your swapfile over multiple drives for optimal performance.
 
