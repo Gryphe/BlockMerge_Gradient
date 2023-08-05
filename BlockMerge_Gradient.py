@@ -4,10 +4,40 @@ import os
 import subprocess
 import torch
 import shutil
+import transformers
 
 from datetime import datetime
 from transformers import AutoModelForCausalLM
 
+class NoInit:
+    def __enter__(self):
+        def noop(*args, **kwargs):
+            pass
+
+        (k, u, n) = (
+            torch.nn.init.kaiming_uniform_,
+            torch.nn.init.uniform_,
+            torch.nn.init.normal_,
+        )
+        torch.nn.init.kaiming_uniform_ = noop
+        torch.nn.init.uniform_ = noop
+        torch.nn.init.normal_ = noop
+
+        transformers.modeling_utils._init_weights = False
+        self.funcs = (k, u, n)
+
+    def __exit__(self, *args):
+        (k, u, n) = self.funcs
+        (
+            torch.nn.init.kaiming_uniform_,
+            torch.nn.init.uniform_,
+            torch.nn.init.normal_,
+        ) = (
+            k,
+            u,
+            n,
+        )
+        transformers.modeling_utils._init_weights = True
 
 def clear_console():
     if os.name == "nt":  # For Windows
@@ -78,21 +108,22 @@ def main(args):
         device = torch.device("cpu")
         print(device)
 
-        # Load Model 1
-        print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 1 ({args.model_path1})...")
-        model1 = AutoModelForCausalLM.from_pretrained(args.model_path1)
-        model1.half()
-        model1 = model1.to(device)
-        model1.eval()
-        print(f"Model 1 Loaded. Dtype: {model1.dtype}")
-
-        # Load Model 2
-        print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 2 ({args.model_path2})...")
-        model2 = AutoModelForCausalLM.from_pretrained(args.model_path2)
-        model2.half()
-        model2 = model2.to(device)
-        model2.eval()
-        print(f"{datetime.now().strftime('%H:%M:%S')} -  Model 2 Loaded. Dtype: {model2.dtype}")
+        with NoInit():
+            # Load Model 1
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 1 ({args.model_path1})...")
+            model1 = AutoModelForCausalLM.from_pretrained(args.model_path1)
+            model1.half()
+            model1 = model1.to(device)
+            model1.eval()
+            print(f"Model 1 Loaded. Dtype: {model1.dtype}")
+    
+            # Load Model 2
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 2 ({args.model_path2})...")
+            model2 = AutoModelForCausalLM.from_pretrained(args.model_path2)
+            model2.half()
+            model2 = model2.to(device)
+            model2.eval()
+            print(f"{datetime.now().strftime('%H:%M:%S')} -  Model 2 Loaded. Dtype: {model2.dtype}")
 
         # Merge the models
         print(f"{datetime.now().strftime('%H:%M:%S')} - Merging models...")
