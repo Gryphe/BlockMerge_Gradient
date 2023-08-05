@@ -1,11 +1,14 @@
 import argparse
+import concurrent.futures
 import numpy as np
 import os
+import psutil
 import subprocess
 import torch
 import shutil
 import transformers
 
+from ast import literal_eval
 from datetime import datetime
 from transformers import AutoModelForCausalLM
 
@@ -39,22 +42,23 @@ class NoInit:
         )
         transformers.modeling_utils._init_weights = True
 
+
 def clear_console():
     if os.name == "nt":  # For Windows
         subprocess.call("cls", shell=True)
     else:  # For Linux and macOS
         subprocess.call("clear", shell=True)
+        
 
-
-def merge_models(model1, model2, gradient_start, gradient_end):
+def merge_models(model1, model2, gradient_values, layer_only=False):
     """
-    Merge two models by blending their state_dicts.
+    Merge two models by blending their state_dicts based on a smoothly interpolated list of gradient values.
 
     Args:
     - model1: The first model object to merge.
     - model2: The second model object to merge.
-    - gradient_start: The start gradient value.
-    - gradient_end: The end gradient value.
+    - gradient_values: List of gradient values. e.g. [1.0, 0.5, 0.0]
+    - layer_only: If True, only process tensors with keys containing "layer".
     """
 
     # No Torch gradients needed since we're only adjusting the weights and not training
@@ -63,23 +67,40 @@ def merge_models(model1, model2, gradient_start, gradient_end):
         # Get the state_dicts of both models
         state_dict1 = model1.state_dict()
         state_dict2 = model2.state_dict()
+        
+        # Filter keys if layer_only is True
+        if layer_only:
+            keys = [key for key in state_dict1.keys() if "layer" in key]
+        else:
+            keys = state_dict1.keys()
 
-        # Create a gradient blend ratio for both models
-        blend_ratio_model2 = np.linspace(gradient_start, gradient_end, len(state_dict1))
-        blend_ratio_model1 = 1 - blend_ratio_model2
+        # Calculate the sections based on gradient values
+        sections = len(gradient_values) - 1
+        tensors_per_section = len(keys) // sections
 
-        # Loop through the state_dict to merge the tensors
-        for idx, key in enumerate(state_dict1.keys()):
+        # Generate a smoothly interpolated list of blend ratios for the entire model
+        blend_ratios = []
+        for i in range(sections):
+            start_value = gradient_values[i]
+            end_value = gradient_values[i + 1]
+            blend_ratios.extend(np.linspace(start_value, end_value, tensors_per_section))
+
+        # Adjust if there's a remainder
+        remainder = len(keys) - len(blend_ratios)
+        if remainder:
+            blend_ratios.extend([gradient_values[-1]] * remainder)
+
+        # Loop through the keys to merge the tensors
+        for idx, key in enumerate(keys):
             # Get blend ratio for the current tensor
-            first_ratio = blend_ratio_model1[idx]
-            second_ratio = blend_ratio_model2[idx]
+            ratio_model2 = blend_ratios[idx]
+            ratio_model1 = 1 - ratio_model2
 
             # Blend the tensors using the blend ratios
-            state_dict1[key] = (first_ratio * state_dict1[key] + second_ratio * state_dict2[key])
+            state_dict1[key] = (ratio_model1 * state_dict1[key] + ratio_model2 * state_dict2[key])
 
             # Print log of blending ratios for current tensor
-            print(f"{datetime.now().strftime('%H:%M:%S')} - Merging tensor {key}")
-            print(str(first_ratio) + ' - ' + str(second_ratio))
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Merging tensor {key} ({idx}/{len(keys)}) ({round(ratio_model1, 2)} - {round(ratio_model2, 2)})")
 
         # Load the blended state_dict to the first model
         model1.load_state_dict(state_dict1)
@@ -99,7 +120,7 @@ def main(args):
         with NoInit():
             # Load Model 1
             print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 1 ({args.model_path1})...")
-            model1 = AutoModelForCausalLM.from_pretrained(args.model_path1)
+            model1 = AutoModelForCausalLM.from_pretrained(args.model_path1, low_cpu_mem_usage=True)
             model1.half()
             model1 = model1.to(device)
             model1.eval()
@@ -107,7 +128,7 @@ def main(args):
     
             # Load Model 2
             print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 2 ({args.model_path2})...")
-            model2 = AutoModelForCausalLM.from_pretrained(args.model_path2)
+            model2 = AutoModelForCausalLM.from_pretrained(args.model_path2, low_cpu_mem_usage=True)
             model2.half()
             model2 = model2.to(device)
             model2.eval()
@@ -115,7 +136,7 @@ def main(args):
 
         # Merge the models
         print(f"{datetime.now().strftime('%H:%M:%S')} - Merging models...")
-        merge_models(model1, model2, args.gradient_start, args.gradient_end)
+        merge_models(model1, model2, args.gradient_values, args.layer_only)
 
         if args.output_model_path:
             print(f"{datetime.now().strftime('%H:%M:%S')} - Saving new model...")
@@ -148,9 +169,9 @@ if __name__ == "__main__":
     parser.add_argument('--model_path1', type=str, required=True, help='Path to first model')
     parser.add_argument('--model_path2', type=str, required=True, help='Path to second model')
     parser.add_argument('--output_model_path', type=str, required=True, help='Output path for the merged model')
-    parser.add_argument('--gradient_start', type=float, default=0.0, help='Starting gradient value')
-    parser.add_argument('--gradient_end', type=float, default=1.00, help='Ending gradient value')
+    parser.add_argument('--gradient_values', type=literal_eval, required=True, help='List of gradient values. e.g. [1.0, 0.5, 0.0]')
     parser.add_argument('--max_shard_size', type=str, default="2000MiB", help='Output shard size')
+    parser.add_argument('--layer_only', action='store_true', help='If set, only process tensors with keys containing "layer"')
     
     args = parser.parse_args()
     main(args)
