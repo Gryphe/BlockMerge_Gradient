@@ -16,19 +16,6 @@ You can run the script using the command:
 python BlockMerge_Gradient_Tensors.py --model_path1 /path/to/model1 --model_path2 /path/to/model2 --output_model_path /path/to/output --gradient_values '[1.0, 0.5, 0.0]' --max_shard_size '2000MiB' [--layer_only] [--no_layers]
 ```
 
-Sure! Here's a Markdown document detailing the parameters:
-
----
-
-## Model Merger Script
-
-The script is designed to merge two models by blending their state_dicts based on a smoothly interpolated list of gradient values.
-
-### Usage:
-```shell
-python merge_models_script.py --model_path1 <path_to_model1> --model_path2 <path_to_model2> --output_model_path <path_to_output> --gradient_values <list_of_gradient_values> [options]
-```
-
 ### Parameters:
 
 #### Required:
