@@ -34,7 +34,7 @@ python BlockMerge_Gradient_Tensors.py --model_path1 /path/to/model1 --model_path
 
 - `--gradient_values`:  
     - Description: List of gradient values. Represents how the tensors of the two models should be merged.
-    - Example: [1.0, 0.5, 0.0]
+    - Example: "[1.0, 0.5, 0.0]"
     - Type: List of floats
 
 #### Optional:
@@ -95,6 +95,6 @@ The script assumes that the list's length is one less than the total number of t
 ![](MythoLogic-Mini-7b.png)
 
 ```bash
-python BlockMerge_Gradient_Tensors.py --model_path1 "stabilityai/StableBeluga-7B" --model_path2 "NousResearch/Nous-Hermes-Llama2-13b" --output_model_path "mythologic-mini-7b" --gradient_values [0.9,0.0,0.0,0.0]
+python BlockMerge_Gradient_Tensors.py --model_path1 "stabilityai/StableBeluga-7B" --model_path2 "NousResearch/Nous-Hermes-Llama2-13b" --output_model_path "mythologic-mini-7b" --gradient_values "[0.9,0.0,0.0,0.0]"
 ```
-- This would require the pattern **[0.9, 0.0, 0.0, 0.0]**, starting Hermes at 90% before trailing to 0.0 at 33% and staying there. One trick to understand this is by looking how many gaps there are in-between the numbers used. In this case there are three gaps, indicating each point-to-point covers 33% of the tensors.
+- This would require the pattern **"[0.9, 0.0, 0.0, 0.0]"**, starting Hermes at 90% before trailing to 0.0 at 33% and staying there. One trick to understand this is by looking how many gaps there are in-between the numbers used. In this case there are three gaps, indicating each point-to-point covers 33% of the tensors.
