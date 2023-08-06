@@ -34,7 +34,7 @@ python BlockMerge_Gradient_Tensors.py --model_path1 /path/to/model1 --model_path
 
 - `--gradient_values`:  
     - Description: List of gradient values. Represents how the tensors of the two models should be merged.
-    - Example: "[1.0, 0.5, 0.0]"
+    - Example: [1.0, 0.5, 0.0]
     - Type: List of floats
 
 #### Optional:
