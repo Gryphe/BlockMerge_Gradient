@@ -90,8 +90,6 @@ The script assumes that the list's length is one less than the total number of t
 
 --- 
 
-I hope this format makes the script's function and its parameters clear!
-
 ### Example
 
 ![](MythoLogic-Mini-7b.png)
