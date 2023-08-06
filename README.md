@@ -110,7 +110,6 @@ I hope this format makes the script's function and its parameters clear!
 ![](MythoLogic-Mini-7b.png)
 
 ```bash
-python BlockMerge_Gradient.py --model_path1 "stabilityai/StableBeluga-7B" --model_path2 "NousResearch/Nous-Hermes-Llama2-13b" --output_model_path "mythologic-mini-7b" --gradient_values [0.9,0.0,0.0,0.0]
+python BlockMerge_Gradient.py --model_path1 "stabilityai/StableBeluga-7B" --model_path2 "NousResearch/Nous-Hermes-Llama2-13b" --output_model_path "mythologic-mini-7b" --gradient_values [0.9,0.0,0.0]
 ```
-
-In this example, layers from the first model (`model_path1`) will start blending from a ratio of `0.2` and end at `0.8` for the final layer, with the second model (`model_path2`) taking the complementary ratio.
+- This would require the pattern [0.9, 0.0, 0.0, 0.0], starting Hermes at 90% before trailing to 0.0 at 33% and staying there. One trick to understand this is by looking how many gaps there are in-between the numbers used. In this case there are three gaps, indicating each point-to-point covers 33% of the tensors.
