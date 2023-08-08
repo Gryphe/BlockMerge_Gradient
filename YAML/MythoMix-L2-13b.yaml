@@ -1,0 +1,13 @@
+model_path1: "I:\\HF\\Storage\\mythologic-L2-13b\\"
+model_path2: "I:\\HF\\Storage\\The-Face-Of-Goonery_Huginn-13b-FP16\\"
+output_model_path: "I:\\HF\\Storage\\mythomix-L2-13b\\"
+operations:
+  - operation: self_attn_filter
+    filter: "self_attn"
+    gradient_values: [0.8, 0.2]
+  - operation: mlp_filter
+    filter: "mlp"
+    gradient_values: [0.3, 0.7]
+  - operation: layernorm_filter
+    filter: "layernorm"
+    gradient_values: [0.5, 0.5]
