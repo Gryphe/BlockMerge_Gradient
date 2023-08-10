@@ -7,6 +7,7 @@ import subprocess
 import torch
 import shutil
 import transformers
+import yaml
 
 from ast import literal_eval
 from datetime import datetime
@@ -50,7 +51,7 @@ def clear_console():
         subprocess.call("clear", shell=True)
         
 
-def merge_models(model1, model2, gradient_values, layer_only=False, no_layers=False):
+def merge_models(model1, model2, gradient_values, layer_only=False, no_layers=False, namefilter=None):
     """
     Merge two models by blending their state_dicts based on a smoothly interpolated list of gradient values.
 
@@ -76,6 +77,9 @@ def merge_models(model1, model2, gradient_values, layer_only=False, no_layers=Fa
         else:
             keys = state_dict1.keys()
             
+        if namefilter:
+            keys = [key for key in keys if namefilter in key]
+                        
         # Function to merge tensors when vocab sizes differ
         def merge_vocab_tensors(tensor1, tensor2, blend_ratio):
             vocab_size1 = tensor1.shape[0]
@@ -92,10 +96,15 @@ def merge_models(model1, model2, gradient_values, layer_only=False, no_layers=Fa
             if vocab_size1 > min_vocab_size:
                 new_tensor[min_vocab_size:, :] = tensor1[min_vocab_size:, :]
         
-            return new_tensor    
+            return new_tensor
+        
+        # If only one value given, duplicate it.
+        if len(gradient_values) == 1: 
+            gradient_values = [gradient_values[0], gradient_values[0]]
 
         # Calculate the sections based on gradient values
         sections = len(gradient_values) - 1
+        
         tensors_per_section = len(keys) // sections
 
         # Generate a smoothly interpolated list of blend ratios for the entire model
@@ -124,13 +133,13 @@ def merge_models(model1, model2, gradient_values, layer_only=False, no_layers=Fa
                 state_dict1[key] = (ratio_model1 * state_dict1[key] + ratio_model2 * state_dict2[key])
 
             # Print log of blending ratios for current tensor
-            print(f"{datetime.now().strftime('%H:%M:%S')} - Merging tensor {key} ({idx}/{len(keys)}) ({round(ratio_model1, 2)} - {round(ratio_model2, 2)})")
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Merging tensor {key} ({idx+1}/{len(keys)}) ({round(ratio_model1, 2)} - {round(ratio_model2, 2)})")
 
         # Load the blended state_dict to the first model
         model1.load_state_dict(state_dict1)
+        
 
-
-def main(args):
+def main_from_config(config):
     clear_console()
     print(f"{datetime.now().strftime('%H:%M:%S')} - Starting script, please wait...")
 
@@ -143,31 +152,38 @@ def main(args):
 
         with NoInit():
             # Load Model 1
-            print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 1 ({args.model_path1})...")
-            model1 = AutoModelForCausalLM.from_pretrained(args.model_path1, low_cpu_mem_usage=True)
-            model1.half()
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 1 ({config['model_path1']})...")
+            model1 = AutoModelForCausalLM.from_pretrained(config['model_path1'], low_cpu_mem_usage=True)
             model1 = model1.to(device)
             model1.eval()
             print(f"Model 1 Loaded. Dtype: {model1.dtype}")
     
             # Load Model 2
-            print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 2 ({args.model_path2})...")
-            model2 = AutoModelForCausalLM.from_pretrained(args.model_path2, low_cpu_mem_usage=True)
-            model2.half()
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 2 ({config['model_path2']})...")
+            model2 = AutoModelForCausalLM.from_pretrained(config['model_path2'], low_cpu_mem_usage=True)
             model2 = model2.to(device)
             model2.eval()
             print(f"{datetime.now().strftime('%H:%M:%S')} -  Model 2 Loaded. Dtype: {model2.dtype}")
 
-        # Merge the models
-        print(f"{datetime.now().strftime('%H:%M:%S')} - Merging models...")
-        merge_models(model1, model2, args.gradient_values, args.layer_only, args.no_layers)
+        for operation in config['operations']:
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Merging models with operation {operation['operation']}...")
+            
+            merge_models(
+                model1, 
+                model2, 
+                operation['gradient_values'], 
+                operation.get('layer_only', False), 
+                operation.get('no_layers', False),
+                operation.get('filter', None),
+            )
 
-        if args.output_model_path:
+        if config['output_model_path']:
             print(f"{datetime.now().strftime('%H:%M:%S')} - Saving new model...")
-            model1.save_pretrained(args.output_model_path, max_shard_size=args.max_shard_size)
+            model1.half()
+            model1.save_pretrained(config['output_model_path'], max_shard_size=config.get('max_shard_size', "2000MiB"))
 
-            print(f"{datetime.now().strftime('%H:%M:%S')} - Saved to: {args.output_model_path}")
-            print(f"{datetime.now().strftime('%H:%M:%S')} - Copying files to: {args.output_model_path}")
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Saved to: {config['output_model_path']}")
+            print(f"{datetime.now().strftime('%H:%M:%S')} - Copying files to: {config['output_model_path']}")
             files_to_copy = [
                 "added_tokens.json",
                 "tokenizer.model",
@@ -178,25 +194,22 @@ def main(args):
             ]
 
             for filename in files_to_copy:
-                src_path = os.path.join(args.model_path1, filename)
-                dst_path = os.path.join(args.output_model_path, filename)
+                src_path = os.path.join(config['model_path1'], filename)
+                dst_path = os.path.join(config['output_model_path'], filename)
                 try:
                     shutil.copy2(src_path, dst_path)
                 except FileNotFoundError:
-                    print(f"File {filename} not found in {args.model_path1}. Skipping.")
+                    print(f"File {filename} not found in {config['model_path1']}. Skipping.")
 
         print(f"{datetime.now().strftime('%H:%M:%S')} - Script Completed.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Merge Models')
-    parser.add_argument('--model_path1', type=str, required=True, help='Path to first model')
-    parser.add_argument('--model_path2', type=str, required=True, help='Path to second model')
-    parser.add_argument('--output_model_path', type=str, required=True, help='Output path for the merged model')
-    parser.add_argument('--gradient_values', type=literal_eval, required=True, help='List of gradient values. e.g. [1.0, 0.5, 0.0]')
-    parser.add_argument('--max_shard_size', type=str, default="2000MiB", help='Output shard size')
-    parser.add_argument('--layer_only', action='store_true', help='If set, only process tensors with keys containing "layer"')
-    parser.add_argument('--no_layers', action='store_true', help='If set, only process tensors with keys NOT containing "layer"')
-    
+    parser = argparse.ArgumentParser(description='Merge Models via YAML Configuration')
+    parser.add_argument('--config', type=str, required=True, help='Path to the YAML configuration file')
     args = parser.parse_args()
-    main(args)
+    
+    with open(args.config, 'r') as file:
+        config = yaml.safe_load(file)
+    
+    main_from_config(config)
