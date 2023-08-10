@@ -96,10 +96,15 @@ def merge_models(model1, model2, gradient_values, layer_only=False, no_layers=Fa
             if vocab_size1 > min_vocab_size:
                 new_tensor[min_vocab_size:, :] = tensor1[min_vocab_size:, :]
         
-            return new_tensor    
+            return new_tensor
+        
+        # If only one value given, duplicate it.
+        if len(gradient_values) == 1: 
+            gradient_values = [gradient_values[0], gradient_values[0]]
 
         # Calculate the sections based on gradient values
         sections = len(gradient_values) - 1
+        
         tensors_per_section = len(keys) // sections
 
         # Generate a smoothly interpolated list of blend ratios for the entire model
@@ -149,7 +154,6 @@ def main_from_config(config):
             # Load Model 1
             print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 1 ({config['model_path1']})...")
             model1 = AutoModelForCausalLM.from_pretrained(config['model_path1'], low_cpu_mem_usage=True)
-            model1.half()
             model1 = model1.to(device)
             model1.eval()
             print(f"Model 1 Loaded. Dtype: {model1.dtype}")
@@ -157,7 +161,6 @@ def main_from_config(config):
             # Load Model 2
             print(f"{datetime.now().strftime('%H:%M:%S')} - Loading Model 2 ({config['model_path2']})...")
             model2 = AutoModelForCausalLM.from_pretrained(config['model_path2'], low_cpu_mem_usage=True)
-            model2.half()
             model2 = model2.to(device)
             model2.eval()
             print(f"{datetime.now().strftime('%H:%M:%S')} -  Model 2 Loaded. Dtype: {model2.dtype}")
@@ -176,6 +179,7 @@ def main_from_config(config):
 
         if config['output_model_path']:
             print(f"{datetime.now().strftime('%H:%M:%S')} - Saving new model...")
+            model1.half()
             model1.save_pretrained(config['output_model_path'], max_shard_size=config.get('max_shard_size', "2000MiB"))
 
             print(f"{datetime.now().strftime('%H:%M:%S')} - Saved to: {config['output_model_path']}")
