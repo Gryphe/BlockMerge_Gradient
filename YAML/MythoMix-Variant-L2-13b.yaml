@@ -1,0 +1,22 @@
+model_path1: "I:\\HF\\Storage\\mythologic-L2-13b\\"
+model_path2: "I:\\HF\\Storage\\The-Face-Of-Goonery_Huginn-13b-FP16\\"
+output_model_path: "I:\\HF\\Storage\\mythomax-L2-13b\\"
+operations:
+  - operation: lm_head # Single tensor
+    filter: "lm_head"
+    gradient_values: [0.75]
+  - operation: embed_tokens # Single tensor
+    filter: "embed_tokens"
+    gradient_values: [0.75]
+  - operation: self_attn
+    filter: "self_attn"
+    gradient_values: [0.75, 0.25]
+  - operation: mlp
+    filter: "mlp"
+    gradient_values: [0.25, 0.75]
+  - operation: layernorm
+    filter: "layernorm"
+    gradient_values: [0.5, 0.5]
+  - operation: modelnorm # Single tensor
+    filter: "model.norm"
+    gradient_values: [0.75]
