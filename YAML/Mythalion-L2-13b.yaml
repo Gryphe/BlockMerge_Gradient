@@ -1,0 +1,22 @@
+model_path1: "I:\\HF\\Storage\\pygmalion-2-13b\\"
+model_path2: "I:\\HF\\Storage\\mythomax-L2-13b\\"
+output_model_path: "I:\\HF\\Storage\\mythalion-L2-13b\\"
+operations:
+  - operation: lm_head # Single tensor
+    filter: "lm_head"
+    gradient_values: [0.5]
+  - operation: embed_tokens # Single tensor
+    filter: "embed_tokens"
+    gradient_values: [0.5]
+  - operation: self_attn
+    filter: "self_attn"
+    gradient_values: [0.2, 0.8]
+  - operation: mlp
+    filter: "mlp"
+    gradient_values: [0.8, 0.2]
+  - operation: layernorm
+    filter: "layernorm"
+    gradient_values: [0.5]
+  - operation: modelnorm # Single tensor
+    filter: "model.norm"
+    gradient_values: [0.5]
