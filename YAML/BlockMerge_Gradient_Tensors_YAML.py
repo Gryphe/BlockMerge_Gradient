@@ -180,7 +180,7 @@ def main_from_config(config):
         if config['output_model_path']:
             print(f"{datetime.now().strftime('%H:%M:%S')} - Saving new model...")
             model1.half()
-            model1.save_pretrained(config['output_model_path'], max_shard_size=config.get('max_shard_size', "2000MiB"))
+            model1.save_pretrained(config['output_model_path'], max_shard_size=config.get('max_shard_size', "2000MiB"), safe_serialization=True)
 
             print(f"{datetime.now().strftime('%H:%M:%S')} - Saved to: {config['output_model_path']}")
             print(f"{datetime.now().strftime('%H:%M:%S')} - Copying files to: {config['output_model_path']}")
