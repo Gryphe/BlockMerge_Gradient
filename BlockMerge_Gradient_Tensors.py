@@ -167,7 +167,7 @@ def main(args):
 
         if args.output_model_path:
             print(f"{datetime.now().strftime('%H:%M:%S')} - Saving new model...")
-            model1.save_pretrained(args.output_model_path, max_shard_size=args.max_shard_size)
+            model1.save_pretrained(args.output_model_path, max_shard_size=args.max_shard_size, safe_serialization=True)
 
             print(f"{datetime.now().strftime('%H:%M:%S')} - Saved to: {args.output_model_path}")
             print(f"{datetime.now().strftime('%H:%M:%S')} - Copying files to: {args.output_model_path}")
