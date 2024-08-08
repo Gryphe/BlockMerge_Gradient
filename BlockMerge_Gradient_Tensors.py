@@ -197,7 +197,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_path2', type=str, required=True, help='Path to second model')
     parser.add_argument('--output_model_path', type=str, required=True, help='Output path for the merged model')
     parser.add_argument('--gradient_values', type=literal_eval, required=True, help='List of gradient values. e.g. [1.0, 0.5, 0.0]')
-    parser.add_argument('--max_shard_size', type=str, default="2000MiB", help='Output shard size')
+    parser.add_argument('--max_shard_size', type=str, default="5000MB", help='Output shard size')
     parser.add_argument('--layer_only', action='store_true', help='If set, only process tensors with keys containing "layer"')
     parser.add_argument('--no_layers', action='store_true', help='If set, only process tensors with keys NOT containing "layer"')
     parser.add_argument('--custom_filter', type=str, default=None, help='Filter tensors by a custom substring in their names')
